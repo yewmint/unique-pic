@@ -1,0 +1,13 @@
+# test files
+/album/
+/duplicates/**
+/build/
+/Compare.dir/
+/x64/
+
+# prebuilt binary
+/Compare.exe
+
+# temporary files
+/dups.lines
+/imgs.lines

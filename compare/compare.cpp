@@ -1,0 +1,197 @@
+/**
+* @file compare.cpp
+* @author yewmint
+*/
+
+#include "compare.h"
+
+#include <cmath>
+#include <iostream>
+#include <fstream>
+#include <future>
+#include <opencv2/opencv.hpp>
+
+#define CORE_NUM 8
+#define HAMMING_DISTANCE_DIFF 5
+
+using namespace std;
+using namespace cv;
+using namespace Compare;
+
+/**
+* show error message and throw it
+* @param msg
+*/
+void showError(string msg) {
+  cerr << msg << endl;
+  throw msg;
+}
+
+/**
+* get size of file
+* @param path
+* @return size
+*/
+long getFileSize(string path) {
+  std::ifstream f(path);
+  if (!f.is_open()) return 0;
+
+  f.seekg(0, std::ios_base::end);
+  std::streampos sp = f.tellg();
+  return sp;
+}
+
+/**
+* get fingerprint of an image
+* @param path path to image
+* @return fingerprint matrix
+*/
+Mat_<uchar> getFingerprint(string path) {
+  auto img = imread(path);
+
+  if (!img.data) {
+    showError(path);
+    showError("Error: invalid path to image.");
+  }
+
+  // resize gray scale image into 8x8 matrix
+  cvtColor(img, img, COLOR_BGR2GRAY);
+  resize(img, img, Size(8, 8), 0, 0, INTER_LINEAR);
+
+  // elements greater than average are assigned to 1, others are assigned to 0
+  uchar avg = sum(img)[0] / img.total();
+  img = (img >= avg) / 255;
+
+  return img;
+}
+
+/**
+* scan paths with index from start to end
+* used to invoke multi-thread scan
+* @param paths
+* @param pics Picture objects of paths
+* @param begien begin index
+* @param end end index
+*/
+void divideScan(
+  std::vector<std::string> *paths,
+  std::vector<Picture*> *pics,
+  size_t begin,
+  size_t end
+) {
+  for (size_t i = begin; i < end; ++i) {
+    auto path = (*paths)[i];
+    auto fp = getFingerprint(path);
+    (*pics)[i] = new Picture(path, fp, getFileSize(path));
+  }
+}
+
+/**
+* get paths of images from lines file
+* @param argc
+* @param argv
+* @param paths
+*/
+void Compare::getPath(int argc, char **argv, std::vector<std::string>& paths) {
+  if (argc != 2) {
+    showError("Error: invalid arguments.");
+  }
+
+  // read lines into paths
+  ifstream file(argv[1]);
+  while (!file.eof()) {
+    string line;
+    getline(file, line);
+    if (line.size() > 0) {
+      paths.push_back(line);
+    }
+  }
+}
+
+/**
+* scan fingerprints from paths
+* @param paths
+* @param pics
+*/
+void Compare::scan(std::vector<std::string>& paths, std::vector<Picture*>& pics) {
+  // resize pics in advance to avoid changing size in loop
+  size_t len = paths.size();
+  pics.clear();
+  pics.resize(len);
+
+  // determine number of threads by length of pics and number of cpu cores
+  size_t core = CORE_NUM;
+  size_t thdNum = core > len ? len : core;
+
+  // ensure that each pic is dispatched to a thread
+  size_t eachNum = ceil(len / (double)thdNum);
+
+  // store futures of async calls
+  vector<future<void>> thdFut(thdNum);
+  for (size_t thdIdx = 0; thdIdx < thdNum; ++thdIdx) {
+    size_t begin = thdIdx * eachNum;
+    size_t end = begin + eachNum;
+    end = end > len ? len : end;
+    thdFut[thdIdx] = async(divideScan, &paths, &pics, begin, end);
+    // divideScan(&paths, &pics, begin, end);
+  }
+
+  for (const future<void> &fut : thdFut) {
+    fut.wait();
+  }
+}
+
+/**
+* get duplicates using fingerprints
+* @param pics
+* @param dups
+*/
+void Compare::getDuplicate(
+  std::vector<Picture*>& pics,
+  std::vector<std::string>& dups
+) {
+  // store unique pictures
+  vector<Picture*> unique;
+  for (Picture *pic : pics) {
+    bool isDebut = true;
+
+    for (size_t i = 0; i < unique.size(); ++i) {
+      auto uniquePic = unique[i];
+
+      // calculate hamming distance
+      auto tmpMat = pic->fingerprint + uniquePic->fingerprint;
+      size_t hammingDistance = sum(tmpMat == 1)[0] / 255;
+
+      if (hammingDistance <= HAMMING_DISTANCE_DIFF) {
+        isDebut = false;
+        // if current picture is of lower quality, drop it into dups
+        // else exchange it with unique picture
+        if (pic->fileSize < uniquePic->fileSize) {
+          dups.push_back(pic->path);
+        }
+        else {
+          dups.push_back(uniquePic->path);
+          unique[i] = pic;
+        }
+        break;
+      }
+    }
+
+    // if current picture debuts, store it in unique vector
+    if (isDebut) {
+      unique.push_back(pic);
+    }
+  }
+}
+
+/**
+* write paths of duplicates into file
+* @param dups
+* @param path
+*/
+void Compare::write(std::vector<std::string>& dups, std::string path) {
+  ofstream file(path);
+  for (const string dup : dups) {
+    file << dup << endl;
+  }
+}
