@@ -11,12 +11,33 @@
 #include <future>
 #include <opencv2/opencv.hpp>
 
+#ifdef WIN32
+#include <windows.h>
+#endif
+
 #define CORE_NUM 8
 #define HAMMING_DISTANCE_DIFF 5
 
 using namespace std;
 using namespace cv;
 using namespace Compare;
+
+string UTF8ToGBK(const std::string& strUTF8) {
+  int len = MultiByteToWideChar(CP_UTF8, 0, strUTF8.c_str(), -1, NULL, 0);
+  unsigned short * wszGBK = new unsigned short[len + 1];
+  memset(wszGBK, 0, len * 2 + 2);
+  MultiByteToWideChar(CP_UTF8, 0, (LPCTSTR)strUTF8.c_str(), -1, (LPWSTR)wszGBK, len);
+
+  len = WideCharToMultiByte(CP_ACP, 0, (LPWSTR)wszGBK, -1, NULL, 0, NULL, NULL);
+  char *szGBK = new char[len + 1];
+  memset(szGBK, 0, len + 1);
+  WideCharToMultiByte(CP_ACP, 0, (LPWSTR)wszGBK, -1, szGBK, len, NULL, NULL);
+  //strUTF8 = szGBK;
+  std::string strTemp(szGBK);
+  delete[]szGBK;
+  delete[]wszGBK;
+  return strTemp;
+}
 
 /**
 * show error message and throw it
@@ -47,6 +68,7 @@ long getFileSize(string path) {
 * @return fingerprint matrix
 */
 Mat_<uchar> getFingerprint(string path) {
+  path = UTF8ToGBK(path);
   auto img = imread(path);
 
   if (!img.data) {

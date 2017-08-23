@@ -19,7 +19,7 @@ const getImagePaths = function (dir){
     p = resolve(dir, p)
     let state = fs.statSync(p)
     if (state.isDirectory()){
-      let tmpFiles = getFiles(p)
+      let tmpFiles = getImagePaths(p)
       files = files.concat(tmpFiles)
     }
     else if (state.isFile()){
@@ -92,9 +92,9 @@ const run = function (){
   writeLines(imagePaths, 'imgs.lines')
 
   // launch compare with image paths
-  // let st = new Date
+  let st = new Date
   execSync('compare imgs.lines')
-  // console.log((new Date - st) / 1000)
+  console.log((new Date - st) / 1000)
 
   // retrieve paths of duplicates from file and move them out of album
   let dups = readLines('dups.lines')
