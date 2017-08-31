@@ -71,9 +71,11 @@ const readLines = function (path){
 * @param {string} dir path to dir storing duplicates
 */
 const moveDuplicates = function (dups, dir){
+  let cnt = 0
   for (let dup of dups){
-    let bn = basename(dup)
-    fs.renameSync(dup, resolve(__dirname, dir, bn))
+    let ext = extname(dup)
+    let newPath = resolve(__dirname, dir, `dup_${cnt}${ext}`)
+    fs.renameSync(dup, newPath)
   }
 }
 

@@ -22,6 +22,11 @@ using namespace std;
 using namespace cv;
 using namespace Compare;
 
+#ifdef WIN32
+/**
+* convert utf8 to gbk to fit windows build
+* @param strUTF8 original string
+*/
 string UTF8ToGBK(const std::string& strUTF8) {
   int len = MultiByteToWideChar(CP_UTF8, 0, strUTF8.c_str(), -1, NULL, 0);
   unsigned short * wszGBK = new unsigned short[len + 1];
@@ -38,6 +43,7 @@ string UTF8ToGBK(const std::string& strUTF8) {
   delete[]wszGBK;
   return strTemp;
 }
+#endif
 
 /**
 * show error message and throw it
@@ -68,7 +74,9 @@ long getFileSize(string path) {
 * @return fingerprint matrix
 */
 Mat_<uchar> getFingerprint(string path) {
+  #ifdef WIN32
   path = UTF8ToGBK(path);
+  #endif
   auto img = imread(path);
 
   if (!img.data) {
