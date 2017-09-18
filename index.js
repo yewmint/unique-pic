@@ -76,6 +76,7 @@ const moveDuplicates = function (dups, dir){
     let ext = extname(dup)
     let newPath = resolve(__dirname, dir, `dup_${cnt}${ext}`)
     fs.renameSync(dup, newPath)
+    cnt++
   }
 }
 

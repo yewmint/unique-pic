@@ -16,7 +16,7 @@
 #endif
 
 #define CORE_NUM 8
-#define HAMMING_DISTANCE_DIFF 5
+#define HAMMING_DISTANCE_DIFF 3
 
 using namespace std;
 using namespace cv;
