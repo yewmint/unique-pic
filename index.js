@@ -6,6 +6,7 @@
 const { resolve, basename, extname } = require('path')
 const fs = require('fs')
 const { execSync } = require('child_process')
+const _ = require('lodash')
 
 /**
 * get paths to all images in dir
@@ -94,14 +95,23 @@ const run = function (){
   let imagePaths = getImagePaths(albumDir)
   writeLines(imagePaths, 'imgs.lines')
 
+  let hamming = 3
+
   // launch compare with image paths
+  console.log('Analysing album, this may take some time...')
   let st = new Date
-  execSync('compare imgs.lines')
-  console.log((new Date - st) / 1000)
+  execSync(`compare ${hamming} imgs.lines`)
+  console.log('Done, time cost: ', (new Date - st) / 1000, 'ms')
 
   // retrieve paths of duplicates from file and move them out of album
-  let dups = readLines('dups.lines')
-  moveDuplicates(dups, './duplicates')
+  let groups = readLines('dups.lines')
+  // moveDuplicates(dups, './duplicates')
 }
 
-run()
+// run()
+
+let groups = readLines('groups.lines')
+console.log(_.compact(_.without(groups, '------')).length)
+groups = _.compact(groups.join('\n').split('------'))
+groups = _.compact(groups.map(pathStr => pathStr.split(/\n+/)))
+console.log(groups.length)

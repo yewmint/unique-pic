@@ -11,3 +11,9 @@
 # temporary files
 /dups.lines
 /imgs.lines
+/groups.lines
+
+/node_modules
+
+/.vscode
+/duplicates

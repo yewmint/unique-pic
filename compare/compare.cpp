@@ -122,13 +122,20 @@ void divideScan(
 * @param argv
 * @param paths
 */
-void Compare::getPath(int argc, char **argv, std::vector<std::string>& paths) {
-  if (argc != 2) {
+void Compare::getArgs(
+	int argc,
+	char **argv,
+	std::vector<std::string> &paths,
+	int *hamming
+) {
+  if (argc != 3) {
     showError("Error: invalid arguments.");
   }
 
+	*hamming = atoi(argv[1]);
+
   // read lines into paths
-  ifstream file(argv[1]);
+  ifstream file(argv[2]);
   while (!file.eof()) {
     string line;
     getline(file, line);
@@ -215,13 +222,62 @@ void Compare::getDuplicate(
 }
 
 /**
-* write paths of duplicates into file
+* Engroup duplicates using fingerprint
+* @param pics
+* @param groups
+*/
+void Compare::engroups(
+  std::vector<Picture*> &pics,
+  std::vector<std::vector<std::string>> &groups,
+	const int HAMMING
+){
+  vector<vector<Picture*>> picGroups;
+
+  for (Picture *pic : pics){
+    bool isDebut = true;
+    for (vector<Picture*> & picGroup: picGroups){
+      // calculate hamming distance
+      auto tmpMat = picGroup[0]->fingerprint + pic->fingerprint;
+			size_t hammingDistance = sum(tmpMat == 1)[0] / 255;
+
+			if (hammingDistance <= HAMMING) {
+				isDebut = false;
+				picGroup.push_back(pic);
+				break;
+			}
+    }
+
+		if (isDebut) {
+			picGroups.push_back(vector<Picture*>({ pic }));
+		}
+  }
+
+	groups.resize(0);
+	for (const vector<Picture*> & picGroup : picGroups) {
+		vector<string> pathGroup;
+
+		for (const Picture *pic : picGroup) {
+			pathGroup.push_back(pic->path);
+		}
+
+		groups.push_back(pathGroup);
+	}
+}
+
+/**
+* write paths of groups into file
 * @param dups
 * @param path
 */
-void Compare::write(std::vector<std::string>& dups, std::string path) {
+void Compare::write(
+	std::vector<std::vector<std::string>> &groups,
+	std::string path
+){
   ofstream file(path);
-  for (const string dup : dups) {
-    file << dup << endl;
+  for (const vector<string> group: groups) {
+		for (const string path : group) {
+			file << path << endl;
+		}
+		file << "------" << endl;
   }
 }

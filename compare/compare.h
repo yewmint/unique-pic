@@ -33,7 +33,12 @@ namespace Compare {
   * @param argv
   * @param paths
   */
-  void getPath(int argc, char **argv, std::vector<std::string> &paths);
+  void getArgs(
+		int argc, 
+		char **argv, 
+		std::vector<std::string> &paths, 
+		int *hamming
+	);
 
   /**
   * scan fingerprints from paths
@@ -53,11 +58,25 @@ namespace Compare {
   );
 
   /**
+  * Engroup duplicates using fingerprint
+  * @param pics
+  * @param groups
+  */
+	void engroups(
+		std::vector<Picture*> &pics,
+		std::vector<std::vector<std::string>> &groups,
+		const int HAMMING
+  );
+
+  /**
   * write paths of duplicates into file
   * @param dups
   * @param path
   */
-  void write(std::vector<std::string> &dups, std::string path);
+  void write(
+		std::vector<std::vector<std::string>> &groups, 
+		std::string path
+	);
 }
 
 #endif

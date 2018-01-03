@@ -1,0 +1,22 @@
+{
+  "name": "unique-pic",
+  "version": "1.0.0",
+  "description": "Unique Pic helps you clean your album, get rid of thumbnails and duplicates.",
+  "main": "index.js",
+  "scripts": {
+    "test": "node index.js album"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/yewmint/unique-pic.git"
+  },
+  "author": "yewmint",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/yewmint/unique-pic/issues"
+  },
+  "homepage": "https://github.com/yewmint/unique-pic#readme",
+  "dependencies": {
+    "lodash": "^4.17.4"
+  }
+}
