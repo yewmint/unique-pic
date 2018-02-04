@@ -8,6 +8,7 @@
 #include <cmath>
 #include <iostream>
 #include <fstream>
+#include <sstream>
 #include <future>
 #include <opencv2/opencv.hpp>
 
@@ -60,6 +61,9 @@ void showError(string msg) {
 * @return size
 */
 long getFileSize(string path) {
+  #ifdef WIN32
+  path = UTF8ToGBK(path);
+  #endif
   std::ifstream f(path);
   if (!f.is_open()) return 0;
 
@@ -257,7 +261,9 @@ void Compare::engroups(
 		vector<string> pathGroup;
 
 		for (const Picture *pic : picGroup) {
-			pathGroup.push_back(pic->path);
+      ostringstream oss;
+      oss << (int)pic->fileSize << endl << pic->path;
+			pathGroup.push_back(oss.str());
 		}
 
 		groups.push_back(pathGroup);

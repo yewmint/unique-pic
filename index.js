@@ -8,6 +8,12 @@ const fs = require('fs')
 const { execSync } = require('child_process')
 const _ = require('lodash')
 
+const { mkdirSync, existsSync } = fs
+
+function mkdir (path){
+  if (!existsSync(path)) mkdirSync(path)
+}
+
 /**
 * get paths to all images in dir
 * @param {string} dir
@@ -24,7 +30,7 @@ const getImagePaths = function (dir){
       files = files.concat(tmpFiles)
     }
     else if (state.isFile()){
-      ext = extname(p)
+      ext = _.toLower(extname(p))
       if (ext === '.jpg' || ext === '.png'){
         files.push(p)
       }
@@ -67,18 +73,39 @@ const readLines = function (path){
 }
 
 /**
-* move dulicates out of album into dir
-* @param {string[]} dups paths to duplicates
-* @param {string} dir path to dir storing duplicates
+* move groups out of album into dir
+* @param {string[][]} groups paths to groups
+* @param {string} dir path to dir storing groups
 */
-const moveDuplicates = function (dups, dir){
-  let cnt = 0
-  for (let dup of dups){
-    let ext = extname(dup)
-    let newPath = resolve(__dirname, dir, `dup_${cnt}${ext}`)
-    fs.renameSync(dup, newPath)
-    cnt++
-  }
+const moveGroups = function (groups, dir){
+  let root = resolve(__dirname, dir)
+  mkdir(root)
+
+  let stores = _.chunk(groups, 100)
+  stores.forEach((store, idx) => {
+    let storePath = resolve(root, _.padStart(`${idx}`, 3, '0'))
+    mkdir(storePath)
+
+    store.forEach((group, idx) => {
+      let prefix = `${idx}-`
+
+      let img = _.maxBy(group, im => im[0])
+
+      let ext = extname(img[1])
+      let name = _.padStart(`${idx}`, 2, '0')
+      let path = resolve(storePath, `${name}${ext}`)
+
+      fs.renameSync(img[1], path)
+
+      // group.forEach((img, idx) => {
+      //   let ext = extname(img)
+      //   let name = `${prefix}${idx}${ext}`
+      //   let path = resolve(storePath, name)
+
+      //   fs.renameSync(img, path)
+      // })
+    })
+  })
 }
 
 /**
@@ -95,23 +122,38 @@ const run = function (){
   let imagePaths = getImagePaths(albumDir)
   writeLines(imagePaths, 'imgs.lines')
 
-  let hamming = 3
+  let hamming = 2
 
   // launch compare with image paths
   console.log('Analysing album, this may take some time...')
   let st = new Date
   execSync(`compare ${hamming} imgs.lines`)
-  console.log('Done, time cost: ', (new Date - st) / 1000, 'ms')
+  console.log('Done, time cost: ', (new Date - st) / 1000, 's')
 
   // retrieve paths of duplicates from file and move them out of album
-  let groups = readLines('dups.lines')
-  // moveDuplicates(dups, './duplicates')
+  let groups = readLines('groups.lines')
+  groups = _.compact(groups.join('\n').split('------'))
+  groups = _.compact(
+    groups.map(
+      pathStr => _.chunk(_.compact(
+        pathStr.split(/\n+/)
+      ), 2)
+    )
+  )
+
+  moveGroups(groups, './result')
 }
 
-// run()
+run()
 
-let groups = readLines('groups.lines')
-console.log(_.compact(_.without(groups, '------')).length)
-groups = _.compact(groups.join('\n').split('------'))
-groups = _.compact(groups.map(pathStr => pathStr.split(/\n+/)))
-console.log(groups.length)
+// let groups = readLines('groups.lines')
+// console.log(_.compact(_.without(groups, '------')).length)
+// groups = _.compact(groups.join('\n').split('------'))
+// groups = _.compact(groups.map(pathStr => pathStr.split(/\n+/)))
+// console.log(groups.length)
+
+// let groups = readLines('groups.lines')
+// groups = _.compact(groups.join('\n').split('------'))
+// groups = _.compact(groups.map(pathStr => _.compact(pathStr.split(/\n+/))))
+// let group = _.filter(groups, g => g.length > 1)
+// console.log(group)
